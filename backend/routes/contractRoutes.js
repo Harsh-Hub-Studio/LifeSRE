@@ -6,7 +6,6 @@ const AuditLog = require("../models/AuditLog");
 const { google } = require("googleapis");
 const oauth2Client = require("../config/googleAuth");
 const generateCancellationEmail = require("../services/remediationService");
-const sendWhatsAppNotification = require("../services/notificationService");
 
 router.post("/:id/switch", async (req, res) => {
   try {
@@ -37,7 +36,21 @@ router.post("/:id/switch", async (req, res) => {
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
     // 4️⃣ Generate cancellation email
-    const emailContent = await generateCancellationEmail(contract);
+    let emailContent;
+
+    try {
+      emailContent = await generateCancellationEmail(contract);
+    } catch (err) {
+      console.log("⚠️ OpenAI failed. Using fallback email.");
+      emailContent = `
+        Dear ${contract.vendor},
+
+        Please cancel my subscription effective immediately.
+        Do not auto-renew my plan.
+
+        Thank you.
+        `;
+    }
 
     const message = [
       `To: support@${contract.vendor.toLowerCase().replace(/\s/g, "")}.com`,
@@ -69,9 +82,7 @@ router.post("/:id/switch", async (req, res) => {
 
     const month = new Date().toISOString().slice(0, 7);
 
-    const existingMonth = user.monthlySavings.find(
-      (m) => m.month === month
-    );
+    const existingMonth = user.monthlySavings.find((m) => m.month === month);
 
     if (existingMonth) {
       existingMonth.amount += potentialSavings || 0;
@@ -85,11 +96,14 @@ router.post("/:id/switch", async (req, res) => {
     await user.save();
 
     // 7️⃣ WhatsApp notification
-    await sendWhatsAppNotification(user, `
-Your ${contract.vendor} contract was switched.
-You saved ₹${potentialSavings}.
-Total savings: ₹${user.savingsTotal}.
-`);
+    await sendWhatsAppNotification(
+      user,
+            `
+      Your ${contract.vendor} contract was switched.
+      You saved ₹${potentialSavings}.
+      Total savings: ₹${user.savingsTotal}.
+      `,
+    );
 
     // 8️⃣ Audit log
     await AuditLog.create({
@@ -106,7 +120,6 @@ Total savings: ₹${user.savingsTotal}.
       message: "Contract switched successfully",
       savingsTotal: user.savingsTotal,
     });
-
   } catch (err) {
     console.error("Switch Error:", err.message);
     res.status(500).json({ message: "Error switching contract" });
