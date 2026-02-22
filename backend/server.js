@@ -12,6 +12,7 @@ const uploadRoutes = require("./routes/uploadRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const contractRoutes = require("./routes/contractRoutes");
 
+
 const app = express();
 
 // Connect Database
@@ -27,6 +28,8 @@ app.use("/gmail", gmailRoutes);
 app.use("/upload", uploadRoutes);
 app.use("/dashboard", dashboardRoutes);
 app.use("/contract", contractRoutes);
+
+
 
 app.get("/", (req, res) => {
   res.send("🚀 LifeSRE Backend Running");
