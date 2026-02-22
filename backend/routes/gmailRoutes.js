@@ -34,17 +34,32 @@ router.get("/fetch/:userId", async (req, res) => {
     const savedContracts = [];
 
     for (let email of emails) {
-      const extracted = extractContractDetails(email.text, email.subject);
 
-      if (!extracted.vendor || extracted.vendor === "Unknown Vendor") {
-        extracted.vendor = email.subject || "Unknown Service";
+      // ✅ FIX 1: Await extraction
+      const extractedRaw = await extractContractDetails(email.text);
+
+      const extracted =
+        typeof extractedRaw === "string"
+          ? JSON.parse(extractedRaw)
+          : extractedRaw;
+
+      // ✅ FIX 2: Proper vendor replacement
+      let vendorName = extracted.vendor;
+
+      if (
+        !vendorName ||
+        vendorName === "Unknown" ||
+        vendorName === "Unknown Vendor" ||
+        vendorName === "Subject" ||
+        vendorName === "Unknown Service"
+      ) {
+        vendorName = email.subject?.trim() || "Unknown Service";
       }
 
       const renewalDate = parseDate(extracted.renewalDate);
       const renewalAmount = parseAmount(extracted.renewalAmount);
-      console.log("Extracted:", extracted);
-      console.log("Parsed date:", renewalDate);
-      console.log("Parsed amount:", renewalAmount);
+
+      console.log("Final Vendor:", vendorName);
 
       if (!renewalDate || renewalAmount === 0) {
         continue;
@@ -52,11 +67,10 @@ router.get("/fetch/:userId", async (req, res) => {
 
       const riskData = calculateRisk(renewalDate, renewalAmount);
 
+      // ✅ FIX 3: Prevent duplicates using Gmail message ID
       const existing = await Contract.findOne({
         userId: user._id,
-        vendor: extracted.vendor,
-        renewalDate,
-        renewalAmount,
+        gmailMessageId: email.id,
       });
 
       if (existing) {
@@ -65,7 +79,8 @@ router.get("/fetch/:userId", async (req, res) => {
 
       const newContract = await Contract.create({
         userId: user._id,
-        vendor: extracted.vendor,
+        gmailMessageId: email.id, // store gmail id
+        vendor: vendorName,
         renewalDate,
         renewalAmount,
         contractType: extracted.contractType || "Unknown",
@@ -79,6 +94,7 @@ router.get("/fetch/:userId", async (req, res) => {
     }
 
     res.json(savedContracts);
+
   } catch (err) {
     console.error("❌ Gmail Fetch Error:", err.message);
     res.status(500).json({ message: "Error fetching emails" });

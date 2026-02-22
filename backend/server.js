@@ -10,6 +10,7 @@ const gmailRoutes = require("./routes/gmailRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const contractRoutes = require("./routes/contractRoutes");
+const recommendationRoutes = require("./routes/recommendationRoutes");
 
 
 const app = express();
@@ -26,9 +27,8 @@ app.use("/auth", authRoutes);
 app.use("/gmail", gmailRoutes);
 app.use("/upload", uploadRoutes);
 app.use("/dashboard", dashboardRoutes);
-app.use("/contract", contractRoutes);
-
-
+app.use("/contracts", contractRoutes);
+app.use("/recommendation", recommendationRoutes);
 
 app.get("/", (req, res) => {
   res.send("🚀 LifeSRE Backend Running");

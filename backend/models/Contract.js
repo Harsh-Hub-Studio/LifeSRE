@@ -13,7 +13,7 @@ const contractSchema = new mongoose.Schema(
     renewalAmount: Number,
     contractType: String,
     cancellationWindow: String,
-
+    gmailMessageId: String,
     riskLevel: {
       type: String,
       enum: ["LOW", "MEDIUM", "HIGH"],
@@ -28,7 +28,7 @@ const contractSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["ACTIVE", "SWITCHED", "CANCELLED"],
+      enum: ["ACTIVE", "SWITCHED", "ARCHIVED"],
       default: "ACTIVE",
     },
 

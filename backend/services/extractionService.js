@@ -14,7 +14,6 @@ function extractContractDetails(emailText, subject = "") {
   };
 }
 
-
 function detectVendor(text = "", subject = "") {
   const combined = (text + " " + subject).toLowerCase();
 
